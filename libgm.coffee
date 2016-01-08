@@ -114,7 +114,7 @@
   #
   log "version", GM_info.script.version, "outdated, running hack version", v[1]
   eval hack
-  log "hack successful", v
+  log "hack succeeded"
   return true
 
 #
