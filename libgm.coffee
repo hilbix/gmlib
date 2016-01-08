@@ -3,8 +3,14 @@
 #//
 #// Greasemonkey Library
 
+#
+# log(args..) to console
+#
 @log = (args...) => console.log(args...)
 
+#
+# dump(o) returns (somewhat) readable string variant of some object
+#
 @dump = (o,mx=3,lv=0) =>
   if o == undefined then return "undefined"
   if o == null then return "null"
@@ -24,7 +30,18 @@
     else
       "("+t+") "+o
 
+#
+# This is just a Hack to update the GM userscript more rapidly
+# Returns false for normal script operation,
+# true if hack was loaded and hence the script already ran
+# (which means, do not continue with the old script)
+#
 @GM_evilUpdateHack = (url) => 
+
+  #
+  # Little evil downloader (sync!)
+  # url -> string or undefined on error
+  #
 
   rq = (u) ->
     log "load", u
@@ -32,21 +49,32 @@
     log "code", r.status
     if r.status==200 then r.responseText else undefined
 
+  #
+  # If we are on the special purpose URL (given as arg) page
+  # perform the update
+  #
+
   log "update hack on", window.location.href
   if window.location.href == url
     log "update hack, building update"
-    GM_setValue url, ""
+    GM_setValue url, ""		# disable hack if it no more works
 #    alert(dump(GM_info))
+
+    # We need @downloadURL in the user script's Meta section (header)
     v = GM_info.scriptMetaStr.match /\/\/\s+@downloadURL\s+(\S*)\s/i
     if v.length != 2
       alert "missing @downloadURL in userscript metadata, cannot update"
       return false
+
+    #
+    # Download the new(?) script
+    #
     s = rq(v[1])
     if !s
       alert "loading failed, cannot update"
       return false
 
-    # loading the libraries
+    # Load the libraries (@require) from the script, too
     l = s.match /\/\/\s+@require\s+\S*\s/gi
     q = ""
     for i in l
@@ -56,23 +84,42 @@
       else
         log "library failed, continuing anyway" unless t
 
+    #
+    # Remember the hack
+    # Prepend the libraries
+    # But invalidate the GM_evilUpdateHack to prevent recoursion
+    #
     GM_setValue url, q+"\nthis.GM_evilUpdateHack = function(){ this.log('update hack worked') };\n"+s
     log "loading hack successful"
 
+  #
+  # Nothing to do if no previously remembered hack present
+  #
   hack = @GM_getValue url
   return false unless hack
 
+  #
+  # Check if we are up to date with the hack.
+  # XXX TODO XXX there is a bug if the script became newer than the hack
+  # For this add some heuristics above:  reload the hack if the script revision changes
+  #
   v = hack.match /\/\/\s+@version\s+(\S*)\s/i
   if v?.length==2 and GM_info.script.version == v[1]
     log "userscript cought up, removing hack version", v[1]
     GM_setValue url, ""
     return false
 
+  #
+  # Well, we have a hack loaded, use that
+  #
   log "version", GM_info.script.version, "outdated, running hack version", v[1]
   eval hack
   log "hack successful", v
   return true
 
+#
+# DOM path eval
+#
 class @Path
   constructor: (@path, @parent) ->
     @xpath = document.evaluate(@path, (if @parent? then @parent.lastNode else document), null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null)
@@ -94,6 +141,8 @@ class @Path
     @last = this.lastNode?.textContent
     return false unless @last 
     return s in @last
+
+# NOT READY YET
 
 ###
   p.nextIs=function(s)
@@ -132,39 +181,6 @@ class @Path
   return p;
 }
 
-###
-
-# BEGIN CLASSES
-
-# BEGIN MAIN
-
-###
-
-LIB = (function(__){
-
-_ = __.prototype;
-
-_.v_uni = 0;
-__.
-
-
-function L()
-{
-}
-
-})();
-
-// BEGIN CLASSES
-
-XORBIT = {}
-
-(function(__){
-})(XORBIT);
-
-// RUN
-
-function 
-
 // OLD STUFF
 
 function oldstuff() {
@@ -186,32 +202,6 @@ function startsWith(s,v)
   return v==s.substr(0,v.length);
 }
 
-// Primitive variable dumper
-function dump(s)
-{
-  switch (typeof(s))
-    {
-      case "string":   return s;
-      case "number":   return ""+s;
-      case "object":
-        var t="";
-        for (var i in s)
-          t+="["+i+"]=["+s[i]+"]";
-        return t;
-    }
-  return "["+typeof(s)+"]=["+(s && s.toString ? s.toString() : s)+"]";
-}
-// Primitive logger
-var logline=0;
-function l()
-{
-  var s="";
-  for (i=0; i<arguments.length; i++)
-    s += dump(arguments[i]);
-  logline++;
-  // For some unknown reason, it does not log same lines again
-  GM_log(logline+"["+s+"]");
-}
 function fatal(what)
 {
   l("FATAL: ",what);
