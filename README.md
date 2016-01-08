@@ -34,10 +34,9 @@ vim my-userscript.user.coffee
 #// @namespace   https://gm.example.com/my-userscript/
 #// @include     https://gm.example.com/my-userscript/*
 #// @grant       GM_info
-#// @grant       GM_deleteValue
 #// @grant       GM_getValue
-#// @grant       GM_listValues
 #// @grant       GM_setValue
+#// @grant       GM_xmlhttpRequest
 #// @require     gmlib/libgm.js
 #// @require     gmlib/libcoffee.js
 #//
@@ -49,7 +48,8 @@ vim my-userscript.user.coffee
 #//
 #// DO NOT MODIFY!  Instead modify: {{{FILENAME}}}
 
-`if GM_evilUpdateHack('https://gm.example.com/my-userscript/update.html') return`
+# Hack for remote script development (do not use coffee -b):
+`if (GM_evilUpdateHack('https://gm.example.com/my-userscript/update.html')) return`
 
 # put your nifty script here
 ```
@@ -57,7 +57,7 @@ vim my-userscript.user.coffee
 To compile everything, just type `make`.  And be sure to have `coffee` installed, of course.
 
 
-## Remote Script development
+## Hack for remote script development
 
 The trouble with GreaseMonkey is, that you cannot edit user scripts properly.  There is the builtin editor, but what if you cannot use this (perhaps because the user script is part of some bigger remote solution)?  GreaseMonkey does not catch the updates in any reasonable time then.  And always uninstalling and resinstalling the script is a pain in the ass.
 
@@ -75,12 +75,13 @@ You can accomplish that as follows:
 At the very beginning of the script, add following:
 
 ```
-`if GM_evilUpdateHack('UPDATEURL') return`
+`if (GM_evilUpdateHack('UPDATEURL')) return`
 ```
 
 Be sure to replace `UPDATEURL` with the URL chosen by you.
 
-> There might be user scripts which cannot use this or where this does not work.
+> Note that this only works for scripts which have the `@grant` option set as shown above.
+> Also there might be some other user scripts where this hack simply does not work (for example if you use `coffee -b`).
 > This is bejond the scope of this solution.  If you have that case, you need to invent your own solution, sorry.
 
 

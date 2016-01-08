@@ -5,6 +5,74 @@
 
 @log = (args...) => console.log(args...)
 
+@dump = (o,mx=3,lv=0) =>
+  if o == undefined then return "undefined"
+  if o == null then return "null"
+  t = typeof(o)
+  t = "array" if t == 'object' && Object.prototype.toString.call(o) == '[object Array]'
+  return "("+t+")" if lv>mx
+
+  switch t
+    when 'string' then "'"+o+"'"
+    when 'number' then ""+o
+    when 'array'  then '[ ' + ([ dump(i, mx, lv+1) for i in o ].join(", ")) + ' ]'
+    when 'object'
+      s = '{'
+      for k,v of o
+        s += '\n[' + lv + "] '" + k + "': " + dump(v, mx, lv+1)
+      s + '\n}'
+    else
+      "("+t+") "+o
+
+@GM_evilUpdateHack = (url) => 
+
+  rq = (u) ->
+    log "load", u
+    r = GM_xmlhttpRequest synchronous:true, url:u, method:'GET'
+    log "code", r.status
+    if r.status==200 then r.responseText else undefined
+
+  log "update hack on", window.location.href
+  if window.location.href == url
+    log "update hack, building update"
+    GM_setValue url, ""
+#    alert(dump(GM_info))
+    v = GM_info.scriptMetaStr.match /\/\/\s+@downloadURL\s+(\S*)\s/i
+    if v.length != 2
+      alert "missing @downloadURL in userscript metadata, cannot update"
+      return false
+    s = rq(v[1])
+    if !s
+      alert "loading failed, cannot update"
+      return false
+
+    # loading the libraries
+    l = s.match /\/\/\s+@require\s+\S*\s/gi
+    q = ""
+    for i in l
+      t = rq(i.replace(/\s$/, "").replace(/^.*\s/g, ""))
+      if t
+        q += t+";\n"
+      else
+        log "library failed, continuing anyway" unless t
+
+    GM_setValue url, q+"\nthis.GM_evilUpdateHack = function(){ this.log('update hack worked') };\n"+s
+    log "loading hack successful"
+
+  hack = @GM_getValue url
+  return false unless hack
+
+  v = hack.match /\/\/\s+@version\s+(\S*)\s/i
+  if v?.length==2 and GM_info.script.version == v[1]
+    log "userscript cought up, removing hack version", v[1]
+    GM_setValue url, ""
+    return false
+
+  log "version", GM_info.script.version, "outdated, running hack version", v[1]
+  eval hack
+  log "hack successful", v
+  return true
+
 class @Path
   constructor: (@path, @parent) ->
     @xpath = document.evaluate(@path, (if @parent? then @parent.lastNode else document), null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null)
@@ -20,10 +88,10 @@ class @Path
 
   next: ->
     return null if @nx
-    @last = if this.lastNode then this.lastNode.textContent else null
+    @last = this.lastNode?.textContent
 
   has: (s) ->
-    @last = if this.lastNode then this.lastNode.textContent else null
+    @last = this.lastNode?.textContent
     return false unless @last 
     return s in @last
 
