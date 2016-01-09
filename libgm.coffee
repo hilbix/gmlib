@@ -4,33 +4,6 @@
 #// Greasemonkey Library
 
 #
-# log(args..) to console
-#
-@log = (args...) => console.log(args...)
-
-#
-# dump(o) returns (somewhat) readable string variant of some object
-#
-@dump = (o,mx=3,lv=0) =>
-  if o == undefined then return "undefined"
-  if o == null then return "null"
-  t = typeof(o)
-  t = "array" if t == 'object' && Object.prototype.toString.call(o) == '[object Array]'
-  return "("+t+")" if lv>mx
-
-  switch t
-    when 'string' then "'"+o+"'"
-    when 'number' then ""+o
-    when 'array'  then '[ ' + ([ dump(i, mx, lv+1) for i in o ].join(", ")) + ' ]'
-    when 'object'
-      s = '{'
-      for k,v of o
-        s += '\n[' + lv + "] '" + k + "': " + dump(v, mx, lv+1)
-      s + '\n}'
-    else
-      "("+t+") "+o
-
-#
 # This is just a Hack to update the GM userscript more rapidly
 # Returns false for normal script operation,
 # true if hack was loaded and hence the script already ran

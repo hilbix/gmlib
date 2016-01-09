@@ -20,6 +20,12 @@ clean all::
 st:
 	git status --porcelain
 
+# You need inotify-tools for this
+# run "make watch" and each edit automatically compiles it
+.PHONY: watch it
+watch it:
+	while echo .; do inotifywait *.coffee */*.coffee; done | while read -t100; do while read -t0.5; do :; done; make && printf '\a'; echo; date; echo; done
+
 $(SUBS):
 	git submodule update --init
 
